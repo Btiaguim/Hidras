@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hidra Tracker - Metin2</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 500px;
+    background: #2b2b2b;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  button, input, select {
+    color: #fff;
+    background: #3a3a3a;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    width: 100%;
+  }
+  button {
+    background: #4CAF50;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #45a049;
+  }
+  .admin-button {
+    background: #f39c12;
+    margin-bottom: 15px;
+  }
+  .admin-button:hover {
+    background: #e67e22;
+  }
+  .timer {
+    font-size: 24px;
+    text-align: center;
+    margin-top: 15px;
+  }
+  .hidra-icon, .cofre-icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+  .banner {
+    width: 100%;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://image.board.gameforge.com/uploads/metin2/de/announcement_metin2_de_b9a65d2955858ca2f0b20ab0e2de48d2.jpg" alt="Banner Hidra Tracker" class="banner" />
+
+    <button class="admin-button" onclick="window.location.href='admin.html'">Área Administrativa</button>
+
+    <h2>Hidra Tracker</h2>
+
+    <label>Total Hidras Mortas:</label>
+    <input type="number" id="hidras" value="0" disabled />
+
+    <label>Cofres Dropados (0-5):</label>
+    <input type="number" id="cofresInput" placeholder="Digite os cofres da última hidra" min="0" max="5" />
+    <button onclick="registrarHidra()">Registrar Hidra</button>
+
+    <h3>Cofres Totais: <img src="https://metin2cms.cf/items/img/icons/54705.png" alt="Cofre" class="cofre-icon" /><span id="cofresTotal">0</span></h3>
+    <h3>Média por Hidra: <span id="media">0</span></h3>
+
+    <label>Selecionar Dia:</label>
+    <select id="selecionarDia" onchange="mostrarDiaSelecionado()"></select>
+
+    <div id="historicoDia" style="max-height:200px; overflow-y:auto; padding-left:20px; margin-top:10px;"></div>
+
+    <hr>
+
+    <h2>Timer da Hidra (20 min)</h2>
+    <button onclick="iniciarTimer()">Iniciar Timer</button>
+    <div id="timer" class="timer">20:00</div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let hidras = parseInt(localStorage.getItem('hidras')) || 0;
+  let cofresTotais = parseInt(localStorage.getItem('cofresTotais')) || 0;
+  let countdown;
+  let historico = JSON.parse(localStorage.getItem('historico')) || [];
+
+  function atualizarDias() {
+    const select = document.getElementById('selecionarDia');
+    const dias = [...new Set(historico.map(h => h.data))];
+    select.innerHTML = '';
+    dias.forEach(dia => {
+      const option = document.createElement('option');
+      option.value = dia;
+      option.textContent = dia;
+      select.appendChild(option);
+    });
+    if(dias.length > 0) mostrarDiaSelecionado();
+  }
+
+  function mostrarDiaSelecionado() {
+    const dia = document.getElementById('selecionarDia').value;
+    const div = document.getElementById('historicoDia');
+    div.innerHTML = '';
+    historico.filter(h => h.data === dia).forEach(item => {
+      const hidraImg = item.id === 8 ? 'https://en-wiki.metin2.gameforge.com/images/thumb/9/9d/Hydra.png/200px-Hydra.png' : 'https://metin2cms.cf/items/img/icons/54705.png';
+      const p = document.createElement('p');
+      p.innerHTML = `<img src='${hidraImg}' class='hidra-icon' /> Hidra-${item.id} - <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' /> Cofres: ${item.cofres} (${item.hora})`;
+      div.appendChild(p);
+    });
+  }
+
+  function registrarHidra() {
+    let cofres = parseInt(document.getElementById("cofresInput").value);
+    if (isNaN(cofres) || cofres < 0 || cofres > 5) { alert("Insira um valor entre 0 e 5."); return; }
+
+    hidras++;
+    cofresTotais += cofres;
+    localStorage.setItem('hidras', hidras);
+    localStorage.setItem('cofresTotais', cofresTotais);
+
+    document.getElementById("hidras").value = hidras;
+    document.getElementById("cofresTotal").innerText = cofresTotais;
+    document.getElementById("media").innerText = hidras ? (cofresTotais / hidras).toFixed(2) : 0;
+    document.getElementById("cofresInput").value = "";
+
+    const agora = new Date();
+    const hoje = agora.toLocaleDateString('pt-PT');
+    const hora = agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+
+    historico.push({id: hidras, cofres, data: hoje, hora});
+    localStorage.setItem('historico', JSON.stringify(historico));
+
+    atualizarDias();
+  }
+
+  function iniciarTimer() {
+    let tempo = 20 * 60;
+    clearInterval(countdown);
+    countdown = setInterval(() => {
+      let min = Math.floor(tempo / 60);
+      let sec = tempo % 60;
+      document.getElementById("timer").innerText = `${min}:${sec.toString().padStart(2,'0')}`;
+      if (tempo <= 0) { clearInterval(countdown); alert("O tempo da Hidra acabou! Pode entrar novamente."); }
+      tempo--;
+    }, 1000);
+  }
+
+  window.onload = () => {
+    atualizarDias();
+  };
+</script>
+</body>
+</html>

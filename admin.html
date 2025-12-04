@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Administração - Hidra Tracker</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 500px;
+    background: #2b2b2b;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  button, input, select {
+    color: #fff;
+    background: #3a3a3a;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    width: 100%;
+  }
+  button {
+    background: #c0392b;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #e74c3c;
+  }
+  a {
+    color: #4CAF50;
+    text-decoration: none;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Administração - Hidra Tracker</h2>
+    <a href="index.html">Voltar ao Tracker</a>
+
+    <label>Digite o PIN para acessar funções administrativas:</label>
+    <input type="password" id="pinInput" placeholder="PIN" />
+    <button onclick="acessarAdmin()">Acessar Administração</button>
+
+    <div id="adminFuncoes" style="display:none; margin-top:20px;">
+      <button onclick="resetarTudo()">Resetar Todo Histórico</button>
+      <label>Excluir dados de um dia específico:</label>
+      <select id="selecionarDia"></select>
+      <button onclick="excluirDia()">Excluir Dia</button>
+    </div>
+  </div>
+
+<script>
+  const PIN_CORRETO = '1234'; // Altere para o PIN desejado
+  let historico = JSON.parse(localStorage.getItem('historico')) || [];
+
+  function acessarAdmin() {
+    const pin = document.getElementById('pinInput').value;
+    if(pin !== PIN_CORRETO) { alert('PIN incorreto!'); return; }
+    document.getElementById('adminFuncoes').style.display = 'block';
+    atualizarDias();
+  }
+
+  function atualizarDias() {
+    const select = document.getElementById('selecionarDia');
+    const dias = [...new Set(historico.map(h => h.data))];
+    select.innerHTML = '';
+    dias.forEach(dia => {
+      const option = document.createElement('option');
+      option.value = dia;
+      option.textContent = dia;
+      select.appendChild(option);
+    });
+  }
+
+  function resetarTudo() {
+    if(confirm('Tem certeza que deseja resetar todo o histórico?')) {
+      localStorage.clear();
+      historico = [];
+      atualizarDias();
+      alert('Histórico resetado com sucesso.');
+    }
+  }
+
+  function excluirDia() {
+    const dia = document.getElementById('selecionarDia').value;
+    if(!dia) { alert('Selecione um dia para excluir.'); return; }
+    if(confirm(`Tem certeza que deseja excluir todos os registros do dia ${dia}?`)) {
+      historico = historico.filter(h => h.data !== dia);
+      localStorage.setItem('historico', JSON.stringify(historico));
+      atualizarDias();
+      alert(`Registros do dia ${dia} excluídos.`);
+    }
+  }
+</script>
+</body>
+</html>
