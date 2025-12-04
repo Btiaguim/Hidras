@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Hidra Tracker - Metin2</title>
+<title>Registo Hidras - Metin2</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -90,7 +90,9 @@
     <hr>
 
     <h2>Timer da Hidra (20 min)</h2>
-    <button onclick="iniciarTimer()">Iniciar Timer</button>
+    <button onclick="iniciarTimer()">Iniciar</button>
+    <button onclick="pararTimer()">Parar</button>
+    <button onclick="resetarTimer()">Resetar</button>
     <div id="timer" class="timer">20:00</div>
   </div>
 
@@ -99,6 +101,7 @@
   let hidras = parseInt(localStorage.getItem('hidras')) || 0;
   let cofresTotais = parseInt(localStorage.getItem('cofresTotais')) || 0;
   let countdown;
+  let tempoRestante = 20 * 60;
   let historico = JSON.parse(localStorage.getItem('historico')) || [];
 
   function atualizarDias() {
@@ -151,15 +154,27 @@
   }
 
   function iniciarTimer() {
-    let tempo = 20 * 60;
     clearInterval(countdown);
     countdown = setInterval(() => {
-      let min = Math.floor(tempo / 60);
-      let sec = tempo % 60;
+      let min = Math.floor(tempoRestante / 60);
+      let sec = tempoRestante % 60;
       document.getElementById("timer").innerText = `${min}:${sec.toString().padStart(2,'0')}`;
-      if (tempo <= 0) { clearInterval(countdown); alert("O tempo da Hidra acabou! Pode entrar novamente."); }
-      tempo--;
+      if (tempoRestante <= 0) {
+        clearInterval(countdown);
+        alert("O tempo da Hidra acabou! Pode entrar novamente.");
+      }
+      tempoRestante--;
     }, 1000);
+  }
+
+  function pararTimer() {
+    clearInterval(countdown);
+  }
+
+  function resetarTimer() {
+    clearInterval(countdown);
+    tempoRestante = 20 * 60;
+    document.getElementById("timer").innerText = `20:00`;
   }
 
   window.onload = () => {
