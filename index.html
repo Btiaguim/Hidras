@@ -15,7 +15,6 @@
   .timer { font-size: 24px; text-align: center; margin-top: 15px; }
   .hidra-icon, .cofre-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
   .banner { width: 100%; border-radius: 12px; margin-bottom: 20px; }
-  #historicoDia { max-height: 200px; overflow-y: auto; padding-left: 10px; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -25,7 +24,9 @@
 <div class="container">
   <!-- Timer Section -->
   <div class="section" id="timerSection">
-    <h2>Timer da Hidra (20 min)</h2>
+    <h2>Timer da Hidra</h2>
+    <label>Defina os minutos:</label>
+    <input type="number" id="minutosTimer" value="20" min="1" />
     <button onclick="iniciarTimer()">Iniciar</button>
     <button onclick="pararTimer()">Parar</button>
     <button onclick="resetarTimer()">Resetar</button>
@@ -75,7 +76,7 @@
 let hidras = parseInt(localStorage.getItem('hidras')) || 0;
 let cofresTotais = parseInt(localStorage.getItem('cofresTotais')) || 0;
 let countdown;
-let tempoRestante = 20 * 60;
+let tempoRestante = 0;
 let historico = JSON.parse(localStorage.getItem('historico')) || [];
 
 const webhookURL = 'https://discordapp.com/api/webhooks/1446135504868479202/voxMQ-6MyNCg6MvC9Q3Fv-l4Q6jX9qNmQS4edg39_bQFfv_gdr6ha5IjQ9mWSkj4ZkbJ';
@@ -87,7 +88,6 @@ function atualizarStats() {
   document.getElementById('cofresTotal').innerText = cofresTotais;
   document.getElementById('media').innerText = hidras ? (cofresTotais / hidras).toFixed(2) : 0;
   document.getElementById('totalHidras').innerText = hidras;
-
   let totalWon = 0;
   historico.forEach(h => totalWon += h.profitWon || 0);
   document.getElementById('ganhosWon').innerText = `${totalWon.toFixed(2)} W`;
@@ -116,59 +116,55 @@ function mostrarDiaSelecionado() {
 function registrarHidra() {
   let cofres = parseInt(document.getElementById("cofresInput").value);
   if (isNaN(cofres) || cofres < 0 || cofres > 5) { alert("Insira um valor entre 0 e 5."); return; }
-
   let precoCofre = parseFloat(document.getElementById('precoCofre').value);
   if (isNaN(precoCofre) || precoCofre < 36 || precoCofre > 40) { alert('Insira o preço médio do cofre entre 36 e 40 kk.'); return; }
-
   const agora = new Date();
   const hoje = agora.toLocaleDateString('pt-PT');
   const hora = agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-
   const idHidra = hidras + 1;
   let profit = cofres * precoCofre;
   let profitWon = profit / 100;
-
   historico.push({id: idHidra, cofres, data: hoje, hora, profit, profitWon});
-
   hidras++;
   cofresTotais += cofres;
-
   localStorage.setItem('hidras', hidras);
   localStorage.setItem('cofresTotais', cofresTotais);
   localStorage.setItem('historico', JSON.stringify(historico));
-
   atualizarStats();
   atualizarDias();
   mostrarDiaSelecionado();
   document.getElementById('cofresInput').value = '';
 }
 
-function publicarDiscord() {
-  const dia = document.getElementById('selecionarDia').value;
-  const nick = document.getElementById('nick').value.trim();
-  if (!dia || !nick) { alert('Escolha um dia e digite seu nick'); return; }
-
-  const registrosDoDia = historico.filter(h => h.data === dia);
-  if (registrosDoDia.length === 0) { alert('Não há registros nesse dia'); return; }
-
-  let mensagem = `**${nick} publicou o dia ${dia}:**\n`;
-  let totalWon = 0;
-  registrosDoDia.forEach(h => { mensagem += `Hidra-${h.id}: Cofres ${h.cofres} (${h.hora}) - Profit: ${h.profit}kk (~${h.profitWon}W)\n`; totalWon += h.profitWon; });
-  mensagem += `\n**Total Profit do dia:** ${totalWon.toFixed(2)}W`;
-
-  fetch(webhookURL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: mensagem }) })
-  .then(response => { if(response.ok) { alert('Publicado com sucesso no Discord!'); } else { alert('Erro ao publicar no Discord.'); } })
-  .catch(error => { console.error(error); alert('Erro ao publicar no Discord.'); });
+function iniciarTimer() {
+  let minutos = parseInt(document.getElementById('minutosTimer').value);
+  if(isNaN(minutos) || minutos <= 0) minutos = 20;
+  let fim = localStorage.getItem('timerFim');
+  if(!fim || tempoRestante <= 0){ fim = Date.now() + minutos*60000; localStorage.setItem('timerFim', fim); }
+  fim = parseInt(fim);
+  clearInterval(countdown);
+  countdown = setInterval(()=>{
+    const restante = Math.max(0, Math.floor((fim - Date.now())/1000));
+    const min = Math.floor(restante/60);
+    const sec = restante % 60;
+    document.getElementById('timer').innerText = `${min}:${sec.toString().padStart(2,'0')}`;
+    tempoRestante = restante;
+    if(restante <= 0){ clearInterval(countdown); localStorage.removeItem('timerFim'); alert('O tempo da Hidra acabou!'); }
+  },1000);
 }
 
-function iniciarTimer() { clearInterval(countdown); countdown = setInterval(() => { let min = Math.floor(tempoRestante / 60); let sec = tempoRestante % 60; document.getElementById("timer").innerText = `${min}:${sec.toString().padStart(2,'0')}`; if (tempoRestante <= 0) { clearInterval(countdown); alert("O tempo da Hidra acabou! Pode entrar novamente."); } tempoRestante--; }, 1000); }
-function pararTimer() { clearInterval(countdown); }
-function resetarTimer() { clearInterval(countdown); tempoRestante = 20*60; document.getElementById("timer").innerText = '20:00'; }
+function pararTimer(){ clearInterval(countdown); }
+function resetarTimer(){ clearInterval(countdown); tempoRestante=0; document.getElementById('timer').innerText='20:00'; localStorage.removeItem('timerFim'); }
+function resetarTudo() { if(confirm('Tem certeza que deseja resetar tudo?')) { localStorage.clear(); hidras=0; cofresTotais=0; historico=[]; atualizarStats(); atualizarDias(); } }
+function eliminarDia() { const dia=document.getElementById('selecionarDia').value; if(!dia){alert('Selecione um dia para eliminar'); return;} if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){ historico=historico.filter(h=>h.data!==dia); localStorage.setItem('historico',JSON.stringify(historico)); atualizarDias(); } }
 
-function resetarTudo() { if(confirm('Tem certeza que deseja resetar tudo?')) { localStorage.clear(); hidras = 0; cofresTotais = 0; historico = []; atualizarStats(); atualizarDias(); } }
-function eliminarDia() { const dia = document.getElementById('selecionarDia').value; if(!dia) { alert('Selecione um dia para eliminar'); return; } if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)) { historico = historico.filter(h => h.data !== dia); localStorage.setItem('historico', JSON.stringify(historico)); atualizarDias(); } }
-
-window.onload = () => { atualizarStats(); atualizarDias(); mostrarDiaSelecionado(); };
+window.onload = ()=>{
+  const fim = localStorage.getItem('timerFim');
+  if(fim){ tempoRestante = Math.max(0, Math.floor((fim-Date.now())/1000)); if(tempoRestante>0){ iniciarTimer(); } }
+  atualizarStats();
+  atualizarDias();
+  mostrarDiaSelecionado();
+};
 </script>
 
 </body>
