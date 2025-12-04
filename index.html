@@ -47,7 +47,7 @@
 
     <button onclick="registrarHidra()">Registrar Hidra</button>
 
-    <h3>Cofres Totais: <img src="https://metin2cms.cf/items/img/icons/54705.png" alt="Cofre" class="cofre-icon" /><span id="cofresTotal">0</span></h3>
+    <h3>Cofres Totais: <img src="https://metin2cms.cf/items/img/icons/54705.png" class="cofre-icon" /><span id="cofresTotal">0</span></h3>
     <h3>Média por Hidra: <span id="media">0</span></h3>
     <h3>Total Hidras: <span id="totalHidras">0</span></h3>
     <h3>Ganhos: <span id="ganhosWon">0 W</span></h3>
@@ -79,15 +79,19 @@ let countdown;
 let tempoRestante = 0;
 let historico = JSON.parse(localStorage.getItem('historico')) || [];
 
-const webhookURL = 'https://discordapp.com/api/webhooks/1446135504868479202/voxMQ-6MyNCg6MvC9Q3Fv-l4Q6jX9qNmQS4edg39_bQFfv_gdr6ha5IjQ9mWSkj4ZkbJ';
+const webhookURL = "https://discordapp.com/api/webhooks/1446135504868479202/voxMQ-6MyNCg6MvC9Q3Fv-l4Q6jX9qNmQS4edg39_bQFfv_gdr6ha5IjQ9mWSkj4ZkbJ";
 
-function mostrarAdmin() { const section = document.getElementById('adminSection'); section.style.display = section.style.display === 'none' ? 'block' : 'none'; }
+function mostrarAdmin() {
+  const section = document.getElementById('adminSection');
+  section.style.display = section.style.display === 'none' ? 'block' : 'none';
+}
 
 function atualizarStats() {
   document.getElementById('hidras').value = hidras;
   document.getElementById('cofresTotal').innerText = cofresTotais;
   document.getElementById('media').innerText = hidras ? (cofresTotais / hidras).toFixed(2) : 0;
   document.getElementById('totalHidras').innerText = hidras;
+
   let totalWon = 0;
   historico.forEach(h => totalWon += h.profitWon || 0);
   document.getElementById('ganhosWon').innerText = `${totalWon.toFixed(2)} W`;
@@ -97,7 +101,12 @@ function atualizarDias() {
   const select = document.getElementById('selecionarDia');
   const dias = [...new Set(historico.map(h => h.data))];
   select.innerHTML = '';
-  dias.forEach(dia => { const option = document.createElement('option'); option.value = dia; option.textContent = dia; select.appendChild(option); });
+  dias.forEach(dia => {
+    const option = document.createElement('option');
+    option.value = dia;
+    option.textContent = dia;
+    select.appendChild(option);
+  });
   if(dias.length > 0) mostrarDiaSelecionado();
 }
 
@@ -105,62 +114,186 @@ function mostrarDiaSelecionado() {
   const dia = document.getElementById('selecionarDia').value;
   const div = document.getElementById('historicoDia');
   div.innerHTML = '';
+  const hidraImg = 'https://en-wiki.metin2.gameforge.com/images/thumb/9/9d/Hydra.png/200px-Hydra.png';
+
   historico.filter(h => h.data === dia).forEach(item => {
-    const hidraImg = 'https://en-wiki.metin2.gameforge.com/images/thumb/9/9d/Hydra.png/200px-Hydra.png';
     const p = document.createElement('p');
-    p.innerHTML = `<img src='${hidraImg}' class='hidra-icon' /> Hidra-${item.id} - <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' /> Cofres: ${item.cofres} (${item.hora}) - Profit: ${item.profit}kk (~${item.profitWon}W)`;
+    p.innerHTML = `
+      <img src='${hidraImg}' class='hidra-icon' />
+      Hidra-${item.id} - 
+      <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' />
+      Cofres: ${item.cofres} (${item.hora}) – 
+      Profit: ${item.profit}kk (~${item.profitWon}W)
+    `;
     div.appendChild(p);
   });
 }
 
 function registrarHidra() {
   let cofres = parseInt(document.getElementById("cofresInput").value);
-  if (isNaN(cofres) || cofres < 0 || cofres > 5) { alert("Insira um valor entre 0 e 5."); return; }
+  if (isNaN(cofres) || cofres < 0 || cofres > 5) return alert("Insira um valor entre 0 e 5.");
+  
   let precoCofre = parseFloat(document.getElementById('precoCofre').value);
-  if (isNaN(precoCofre) || precoCofre < 36 || precoCofre > 40) { alert('Insira o preço médio do cofre entre 36 e 40 kk.'); return; }
+  if (isNaN(precoCofre) || precoCofre < 36 || precoCofre > 40)
+    return alert('Insira o preço médio do cofre entre 36 e 40 kk.');
+
   const agora = new Date();
   const hoje = agora.toLocaleDateString('pt-PT');
   const hora = agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
   const idHidra = hidras + 1;
+
   let profit = cofres * precoCofre;
   let profitWon = profit / 100;
+
   historico.push({id: idHidra, cofres, data: hoje, hora, profit, profitWon});
   hidras++;
   cofresTotais += cofres;
+
   localStorage.setItem('hidras', hidras);
   localStorage.setItem('cofresTotais', cofresTotais);
   localStorage.setItem('historico', JSON.stringify(historico));
+
   atualizarStats();
   atualizarDias();
   mostrarDiaSelecionado();
   document.getElementById('cofresInput').value = '';
 }
 
+/* -------------------- TIMER -------------------- */
+
 function iniciarTimer() {
   let minutos = parseInt(document.getElementById('minutosTimer').value);
   if(isNaN(minutos) || minutos <= 0) minutos = 20;
+
   let fim = localStorage.getItem('timerFim');
-  if(!fim || tempoRestante <= 0){ fim = Date.now() + minutos*60000; localStorage.setItem('timerFim', fim); }
+  if(!fim || tempoRestante <= 0){
+    fim = Date.now() + minutos*60000;
+    localStorage.setItem('timerFim', fim);
+  }
+
   fim = parseInt(fim);
   clearInterval(countdown);
+
   countdown = setInterval(()=>{
     const restante = Math.max(0, Math.floor((fim - Date.now())/1000));
     const min = Math.floor(restante/60);
     const sec = restante % 60;
+
     document.getElementById('timer').innerText = `${min}:${sec.toString().padStart(2,'0')}`;
     tempoRestante = restante;
-    if(restante <= 0){ clearInterval(countdown); localStorage.removeItem('timerFim'); alert('O tempo da Hidra acabou!'); }
+
+    if(restante <= 0){
+      clearInterval(countdown);
+      localStorage.removeItem('timerFim');
+      alert('O tempo da Hidra acabou!');
+    }
   },1000);
 }
 
-function pararTimer(){ clearInterval(countdown); }
-function resetarTimer(){ clearInterval(countdown); tempoRestante=0; document.getElementById('timer').innerText='20:00'; localStorage.removeItem('timerFim'); }
-function resetarTudo() { if(confirm('Tem certeza que deseja resetar tudo?')) { localStorage.clear(); hidras=0; cofresTotais=0; historico=[]; atualizarStats(); atualizarDias(); } }
-function eliminarDia() { const dia=document.getElementById('selecionarDia').value; if(!dia){alert('Selecione um dia para eliminar'); return;} if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){ historico=historico.filter(h=>h.data!==dia); localStorage.setItem('historico',JSON.stringify(historico)); atualizarDias(); } }
+function pararTimer(){
+  clearInterval(countdown);
+}
+
+function resetarTimer(){
+  clearInterval(countdown);
+  tempoRestante = 0;
+  document.getElementById('timer').innerText = '20:00';
+  localStorage.removeItem('timerFim');
+}
+
+/* -------------------- ADMIN -------------------- */
+
+function resetarTudo() {
+  if(confirm('Tem certeza que deseja resetar tudo?')){
+    localStorage.clear();
+    hidras = 0;
+    cofresTotais = 0;
+    historico = [];
+    atualizarStats();
+    atualizarDias();
+  }
+}
+
+function eliminarDia() {
+  const dia = document.getElementById('selecionarDia').value;
+  if(!dia) return alert('Selecione um dia para eliminar');
+
+  if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){
+    historico = historico.filter(h => h.data !== dia);
+    localStorage.setItem('historico', JSON.stringify(historico));
+    atualizarDias();
+  }
+}
+
+/* -----------------------------------------------------
+   PUBLICAR NO DISCORD
+------------------------------------------------------ */
+
+document.getElementById("publicar").addEventListener("click", publicarDiscord);
+
+function publicarDiscord() {
+  const nick = document.getElementById("nick").value.trim();
+  if (!nick) return alert("Digite o seu nick antes de publicar.");
+
+  const dia = document.getElementById("selecionarDia").value;
+  if (!dia) return alert("Nenhum dia encontrado no histórico.");
+
+  const dadosDia = historico.filter(h => h.data === dia);
+  if (dadosDia.length === 0) return alert("Esse dia não tem registos.");
+
+  let totalCofres = 0;
+  let totalWon = 0;
+  let textoHidras = "";
+
+  dadosDia.forEach(h => {
+    totalCofres += h.cofres;
+    totalWon += h.profitWon;
+    textoHidras += `• **Hidra-${h.id}** → ${h.cofres} cofres (${h.hora})\n`;
+  });
+
+  const payload = {
+    content: `📢 **Novo registo de Hidras publicado por ${nick}!**`,
+    embeds: [
+      {
+        title: `📅 Registo do dia ${dia}`,
+        color: 3066993,
+        fields: [
+          { name: "👤 Jogador", value: nick, inline: true },
+          { name: "🧟 Hidras Mortas", value: `${dadosDia.length}`, inline: true },
+          { name: "📦 Cofres Totais", value: `${totalCofres} cofres`, inline: true },
+          { name: "💰 Ganho Total", value: `${totalWon.toFixed(2)} W`, inline: true },
+          { name: "📜 Detalhes", value: textoHidras }
+        ],
+        footer: { text: "Sistema Automático — Hidra Tracker" }
+      }
+    ]
+  };
+
+  fetch(webhookURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (res.ok) {
+      alert("Publicado com sucesso no Discord!");
+    } else {
+      alert("Erro ao publicar no Discord.");
+    }
+  })
+  .catch(() => alert("Erro ao conectar ao Discord Webhook."));
+}
+
+/* ------------------ ON LOAD -------------------- */
 
 window.onload = ()=>{
   const fim = localStorage.getItem('timerFim');
-  if(fim){ tempoRestante = Math.max(0, Math.floor((fim-Date.now())/1000)); if(tempoRestante>0){ iniciarTimer(); } }
+  if(fim){
+    tempoRestante = Math.max(0, Math.floor((fim-Date.now())/1000));
+    if(tempoRestante > 0){
+      iniciarTimer();
+    }
+  }
   atualizarStats();
   atualizarDias();
   mostrarDiaSelecionado();
