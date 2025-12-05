@@ -5,22 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Registo de Hidras - Metin2</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin:0; padding:0; }
+  body { font-family: Arial, sans-serif; margin:0; padding:0; background: #1a1a1a; color: #fff; }
+  .light-theme { background: #f5f5f5; color: #000; }
   .container { display: flex; width: 100%; min-height: 100vh; justify-content: space-around; align-items: flex-start; padding: 20px; box-sizing: border-box; }
-  .section { background: #2b2b2b; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.5); width: 30%; }
+  .section { background: #2b2b2b; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.5); width: 30%; margin-bottom:20px; }
+  .light-theme .section { background: #ddd; color:#000; }
   .section h2 { text-align: center; }
   button, input, select { color: #fff; background: #3a3a3a; padding: 10px; margin-top: 10px; border-radius: 8px; border: none; font-size: 16px; width: 100%; box-sizing: border-box; }
+  .light-theme button, .light-theme input, .light-theme select { background: #888; color:#fff; }
   button { background: #4CAF50; cursor: pointer; }
   button:hover { background: #45a049; }
   .timer { font-size: 24px; text-align: center; margin-top: 15px; }
   .hidra-icon, .cofre-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
   .banner { width: 100%; border-radius: 12px; margin-bottom: 20px; }
-  #historicoDia p { margin:5px 0; }
-  .novoDia { font-style: italic; color: #bbb; }
+  canvas { margin-top: 20px; border-radius: 8px; background: #1f1f1f; }
+  .light-theme canvas { background: #eee; }
 </style>
 </head>
 <body>
-
 <img src="https://image.board.gameforge.com/uploads/metin2/de/announcement_metin2_de_b9a65d2955858ca2f0b20ab0e2de48d2.jpg" alt="Banner Hidra Tracker" class="banner" />
 
 <div class="container">
@@ -33,6 +35,7 @@
     <button onclick="pararTimer()">Parar</button>
     <button onclick="resetarTimer()">Resetar</button>
     <div id="timer" class="timer">20:00</div>
+    <button onclick="toggleTheme()">🌙 Claro/Escuro</button>
   </div>
 
   <!-- Hidra Info Section -->
@@ -40,13 +43,10 @@
     <h2>Registo de Hidras</h2>
     <label>Total Hidras Mortas:</label>
     <input type="number" id="hidras" value="0" disabled />
-
     <label>Cofres Dropados (0-5):</label>
     <input type="number" id="cofresInput" placeholder="Digite os cofres da última hidra" min="0" max="5" />
-
     <label>Preço médio do Cofre (kk):</label>
     <input type="number" id="precoCofre" placeholder="36 a 40" min="36" max="40" />
-
     <button onclick="registrarHidra()">Registrar Hidra</button>
 
     <h3>Cofres Totais: <img src="https://metin2cms.cf/items/img/icons/54705.png" class="cofre-icon" /><span id="cofresTotal">0</span></h3>
@@ -57,6 +57,8 @@
     <label>Selecionar Dia:</label>
     <select id="selecionarDia" onchange="mostrarDiaSelecionado()"></select>
     <div id="historicoDia"></div>
+
+    <canvas id="grafico" width="300" height="200"></canvas>
   </div>
 
   <!-- Admin Section -->
@@ -74,21 +76,21 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let hidras = parseInt(localStorage.getItem('hidras')) || 0;
 let cofresTotais = parseInt(localStorage.getItem('cofresTotais')) || 0;
 let countdown;
 let tempoRestante = 0;
 let historico = JSON.parse(localStorage.getItem('historico')) || [];
-
 const webhookURL = "https://discordapp.com/api/webhooks/1446135504868479202/voxMQ-6MyNCg6MvC9Q3Fv-l4Q6jX9qNmQS4edg39_bQFfv_gdr6ha5IjQ9mWSkj4ZkbJ";
 
-function mostrarAdmin() {
-  const section = document.getElementById('adminSection');
-  section.style.display = section.style.display === 'none' ? 'block' : 'none';
+function toggleTheme(){
+  document.body.classList.toggle('light-theme');
 }
 
-function atualizarStats() {
+/* ---------------- STATS ---------------- */
+function atualizarStats(){
   document.getElementById('hidras').value = hidras;
   document.getElementById('cofresTotal').innerText = cofresTotais;
   document.getElementById('media').innerText = hidras ? (cofresTotais / hidras).toFixed(2) : 0;
@@ -97,216 +99,144 @@ function atualizarStats() {
   let totalWon = 0;
   historico.forEach(h => totalWon += h.profitWon || 0);
   document.getElementById('ganhosWon').innerText = `${totalWon.toFixed(2)} W`;
+
+  atualizarGrafico();
 }
 
-function atualizarDias() {
+/* ---------------- DIAS ---------------- */
+function atualizarDias(){
   const select = document.getElementById('selecionarDia');
   const dias = [...new Set(historico.map(h => h.data))];
   select.innerHTML = '';
-  dias.forEach(dia => {
-    const option = document.createElement('option');
-    option.value = dia;
-    option.textContent = dia;
-    select.appendChild(option);
-  });
-
-  // Criar dia novo automaticamente se não existir
-  const hoje = new Date().toLocaleDateString('pt-PT');
-  if (!dias.includes(hoje)) {
-    historico.push({ novoDia: true, data: hoje });
-    localStorage.setItem('historico', JSON.stringify(historico));
-    const option = document.createElement('option');
-    option.value = hoje;
-    option.textContent = hoje;
-    select.appendChild(option);
-  }
-
-  select.value = hoje;
-  mostrarDiaSelecionado();
+  dias.forEach(dia => { const option = document.createElement('option'); option.value=dia; option.textContent=dia; select.appendChild(option); });
+  if(dias.length>0) mostrarDiaSelecionado();
 }
 
-function mostrarDiaSelecionado() {
-  const dia = document.getElementById('selecionarDia').value;
-  const div = document.getElementById('historicoDia');
-  div.innerHTML = '';
-  const hidraImg = 'https://en-wiki.metin2.gameforge.com/images/thumb/9/9d/Hydra.png/200px-Hydra.png';
-
-  historico.filter(h => h.data === dia).forEach(item => {
-    const p = document.createElement('p');
-    if(item.novoDia){
-      p.innerHTML = `<span class="novoDia">*(Dia iniciado — ainda sem hidras mortas)*</span>`;
-    } else {
-      p.innerHTML = `
-        <img src='${hidraImg}' class='hidra-icon' />
-        Hidra-${item.id} - 
-        <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' />
-        Cofres: ${item.cofres} (${item.hora}) – 
-        Profit: ${item.profit}kk (~${item.profitWon}W)
-      `;
-    }
+function mostrarDiaSelecionado(){
+  const dia=document.getElementById('selecionarDia').value;
+  const div=document.getElementById('historicoDia');
+  div.innerHTML='';
+  const hidraImg='https://en-wiki.metin2.gameforge.com/images/thumb/9/9d/Hydra.png/200px-Hydra.png';
+  historico.filter(h=>h.data===dia).forEach(item=>{
+    const p=document.createElement('p');
+    p.innerHTML=`<img src='${hidraImg}' class='hidra-icon' /> Hidra-${item.id} - <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' /> Cofres: ${item.cofres} (${item.hora}) – Profit: ${item.profit}kk (~${item.profitWon}W)`;
     div.appendChild(p);
   });
 }
 
-function registrarHidra() {
-  let cofres = parseInt(document.getElementById("cofresInput").value);
-  if (isNaN(cofres) || cofres < 0 || cofres > 5) return alert("Insira um valor entre 0 e 5.");
-  
-  let precoCofre = parseFloat(document.getElementById('precoCofre').value);
-  if (isNaN(precoCofre) || precoCofre < 36 || precoCofre > 40)
-    return alert('Insira o preço médio do cofre entre 36 e 40 kk.');
+/* ---------------- REGISTRO ---------------- */
+function registrarHidra(){
+  let cofres=parseInt(document.getElementById("cofresInput").value);
+  if(isNaN(cofres)||cofres<0||cofres>5)return alert("Insira um valor entre 0 e 5.");
+  let precoCofre=parseFloat(document.getElementById('precoCofre').value);
+  if(isNaN(precoCofre)||precoCofre<36||precoCofre>40)return alert('Insira o preço médio do cofre entre 36 e 40 kk.');
 
-  const hoje = new Date().toLocaleDateString('pt-PT');
-  const agora = new Date();
-  const hora = agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-  const idHidra = hidras + 1;
+  const agora=new Date();
+  const hoje=agora.toLocaleDateString('pt-PT');
+  const hora=agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+  const idHidra=hidras+1;
 
-  // Remover marcador de dia vazio se existir
-  historico = historico.map(h => (h.data === hoje && h.novoDia) ? null : h).filter(Boolean);
+  let profit=cofres*precoCofre;
+  let profitWon=profit/100;
 
-  let profit = cofres * precoCofre;
-  let profitWon = profit / 100;
-
-  historico.push({id: idHidra, cofres, data: hoje, hora, profit, profitWon});
+  historico.push({id:idHidra, cofres, data:hoje, hora, profit, profitWon});
   hidras++;
-  cofresTotais += cofres;
+  cofresTotais+=cofres;
 
-  localStorage.setItem('hidras', hidras);
-  localStorage.setItem('cofresTotais', cofresTotais);
-  localStorage.setItem('historico', JSON.stringify(historico));
+  localStorage.setItem('hidras',hidras);
+  localStorage.setItem('cofresTotais',cofresTotais);
+  localStorage.setItem('historico',JSON.stringify(historico));
 
   atualizarStats();
   atualizarDias();
   mostrarDiaSelecionado();
-  document.getElementById('cofresInput').value = '';
+  document.getElementById('cofresInput').value='';
 }
 
-/* -------------------- TIMER -------------------- */
+/* ---------------- TIMER ---------------- */
+function iniciarTimer(){
+  let minutos=parseInt(document.getElementById('minutosTimer').value);
+  if(isNaN(minutos)||minutos<=0)minutos=20;
 
-function iniciarTimer() {
-  let minutos = parseInt(document.getElementById('minutosTimer').value);
-  if(isNaN(minutos) || minutos <= 0) minutos = 20;
+  let fim=localStorage.getItem('timerFim');
+  if(!fim||tempoRestante<=0){ fim=Date.now()+minutos*60000; localStorage.setItem('timerFim',fim); }
 
-  let fim = localStorage.getItem('timerFim');
-  if(!fim || tempoRestante <= 0){
-    fim = Date.now() + minutos*60000;
-    localStorage.setItem('timerFim', fim);
-  }
-
-  fim = parseInt(fim);
+  fim=parseInt(fim);
   clearInterval(countdown);
-
-  countdown = setInterval(()=>{
-    const restante = Math.max(0, Math.floor((fim - Date.now())/1000));
-    const min = Math.floor(restante/60);
-    const sec = restante % 60;
-
-    document.getElementById('timer').innerText = `${min}:${sec.toString().padStart(2,'0')}`;
-    tempoRestante = restante;
-
-    if(restante <= 0){
-      clearInterval(countdown);
-      localStorage.removeItem('timerFim');
-      alert('O tempo da Hidra acabou!');
-    }
+  countdown=setInterval(()=>{
+    const restante=Math.max(0,Math.floor((fim-Date.now())/1000));
+    const min=Math.floor(restante/60);
+    const sec=restante%60;
+    document.getElementById('timer').innerText=`${min}:${sec.toString().padStart(2,'0')}`;
+    tempoRestante=restante;
+    if(restante<=0){ clearInterval(countdown); localStorage.removeItem('timerFim'); alert('O tempo da Hidra acabou!'); }
   },1000);
 }
 
 function pararTimer(){ clearInterval(countdown); }
-function resetarTimer(){ clearInterval(countdown); tempoRestante = 0; document.getElementById('timer').innerText = '20:00'; localStorage.removeItem('timerFim'); }
+function resetarTimer(){ clearInterval(countdown); tempoRestante=0; document.getElementById('timer').innerText='20:00'; localStorage.removeItem('timerFim'); }
 
-/* -------------------- ADMIN -------------------- */
+/* ---------------- ADMIN ---------------- */
+function mostrarAdmin(){ const section=document.getElementById('adminSection'); section.style.display=section.style.display==='none'?'block':'none'; }
+function resetarTudo(){ if(confirm('Tem certeza que deseja resetar tudo?')){ localStorage.clear(); hidras=0; cofresTotais=0; historico=[]; atualizarStats(); atualizarDias(); } }
+function eliminarDia(){ const dia=document.getElementById('selecionarDia').value; if(!dia)return alert('Selecione um dia para eliminar'); if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){ historico=historico.filter(h=>h.data!==dia); localStorage.setItem('historico',JSON.stringify(historico)); atualizarDias(); } }
 
-function resetarTudo() {
-  if(confirm('Tem certeza que deseja resetar tudo?')){
-    localStorage.clear();
-    hidras = 0;
-    cofresTotais = 0;
-    historico = [];
-    atualizarStats();
-    atualizarDias();
-  }
-}
-
-function eliminarDia() {
-  const dia = document.getElementById('selecionarDia').value;
-  if(!dia) return alert('Selecione um dia para eliminar');
-
-  if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){
-    historico = historico.filter(h => h.data !== dia);
-    localStorage.setItem('historico', JSON.stringify(historico));
-    atualizarDias();
-  }
-}
-
-/* -----------------------------------------------------
-   PUBLICAR NO DISCORD
------------------------------------------------------- */
-
+/* ---------------- DISCORD ---------------- */
 document.getElementById("publicar").addEventListener("click", publicarDiscord);
+function publicarDiscord(){
+  const nick=document.getElementById("nick").value.trim();
+  if(!nick)return alert("Digite o seu nick antes de publicar.");
+  const dia=document.getElementById("selecionarDia").value;
+  if(!dia)return alert("Nenhum dia encontrado no histórico.");
+  const dadosDia=historico.filter(h=>h.data===dia);
+  if(dadosDia.length===0)return alert("Esse dia não tem registos.");
 
-function publicarDiscord() {
-  const nick = document.getElementById("nick").value.trim();
-  if (!nick) return alert("Digite o seu nick antes de publicar.");
+  let totalCofres=0;
+  let totalWon=0;
+  let textoHidras="";
+  dadosDia.forEach(h=>{ totalCofres+=h.cofres; totalWon+=h.profitWon; textoHidras+=`• **Hidra-${h.id}** → ${h.cofres} cofres (${h.hora})\n`; });
 
-  const dia = document.getElementById("selecionarDia").value;
-  if (!dia) return alert("Nenhum dia encontrado no histórico.");
+  const payload={ content:`📢 **Novo registo de Hidras publicado por ${nick}!**`,
+  embeds:[{ title:`📅 Registo do dia ${dia}`, color:3066993, fields:[
+    { name:"👤 Jogador", value:nick, inline:true },
+    { name:"🧟 Hidras Mortas", value:`${dadosDia.length}`, inline:true },
+    { name:"📦 Cofres Totais", value:`${totalCofres} cofres`, inline:true },
+    { name:"💰 Ganho Total", value:`${totalWon.toFixed(2)} W`, inline:true },
+    { name:"📜 Detalhes", value:textoHidras }
+  ], footer:{ text:"Sistema Automático — Hidra Tracker" } }]};
 
-  const dadosDia = historico.filter(h => h.data === dia && !h.novoDia);
-  if (dadosDia.length === 0) return alert("Esse dia não tem registos.");
-
-  let totalCofres = 0;
-  let totalWon = 0;
-  let textoHidras = "";
-
-  dadosDia.forEach(h => {
-    totalCofres += h.cofres;
-    totalWon += h.profitWon;
-    textoHidras += `• **Hidra-${h.id}** → ${h.cofres} cofres (${h.hora})\n`;
-  });
-
-  const payload = {
-    content: `📢 **Novo registo de Hidras publicado por ${nick}!**`,
-    embeds: [
-      {
-        title: `📅 Registo do dia ${dia}`,
-        color: 3066993,
-        fields: [
-          { name: "👤 Jogador", value: nick, inline: true },
-          { name: "🧟 Hidras Mortas", value: `${dadosDia.length}`, inline: true },
-          { name: "📦 Cofres Totais", value: `${totalCofres} cofres`, inline: true },
-          { name: "💰 Ganho Total", value: `${totalWon.toFixed(2)} W`, inline: true },
-          { name: "📜 Detalhes", value: textoHidras }
-        ],
-        footer: { text: "Sistema Automático — Hidra Tracker" }
-      }
-    ]
-  };
-
-  fetch(webhookURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-  .then(res => { if (res.ok) alert("Publicado com sucesso no Discord!"); else alert("Erro ao publicar no Discord."); })
-  .catch(() => alert("Erro ao conectar ao Discord Webhook."));
+  fetch(webhookURL,{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) })
+  .then(res=>res.ok?alert("Publicado com sucesso no Discord!"):alert("Erro ao publicar no Discord."))
+  .catch(()=>alert("Erro ao conectar ao Discord Webhook."));
 }
 
-/* ------------------ ON LOAD -------------------- */
+/* ---------------- GRAFICO ---------------- */
+let chart;
+function atualizarGrafico(){
+  const dias = [...new Set(historico.map(h=>h.data))];
+  const profitsPorDia = dias.map(dia=>{
+    return historico.filter(h=>h.data===dia).reduce((acc,h)=>acc+h.profitWon,0);
+  });
+  const ctx=document.getElementById('grafico').getContext('2d');
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:dias,
+      datasets:[{ label:'Profit Diário (W)', data:profitsPorDia, backgroundColor:'rgba(75,192,192,0.6)'}]
+    },
+    options:{ responsive:true, plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true } } }
+  });
+}
 
-window.onload = ()=>{
-  const fim = localStorage.getItem('timerFim');
-  if(fim){
-    tempoRestante = Math.max(0, Math.floor((fim-Date.now())/1000));
-    if(tempoRestante > 0){
-      iniciarTimer();
-    }
-  }
+/* ---------------- ON LOAD ---------------- */
+window.onload=()=>{
+  const fim=localStorage.getItem('timerFim');
+  if(fim){ tempoRestante=Math.max(0,Math.floor((fim-Date.now())/1000)); if(tempoRestante>0) iniciarTimer(); }
   atualizarStats();
   atualizarDias();
   mostrarDiaSelecionado();
 };
 </script>
-
 </body>
 </html>
