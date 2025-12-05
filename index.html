@@ -21,6 +21,10 @@
   .dark-mode { background:#121212; color:#fff; }
   .dark-mode .section { background:#1f1f1f; }
   .dark-mode button,input,select { background:#333; color:#fff; }
+
+  /* Totais Gerais */
+  #totaisGerais { background:#3a3a3a; border-radius:8px; padding:10px; margin-top:15px; text-align:center; }
+  #totaisGerais h3 { margin:5px 0; }
 </style>
 </head>
 <body>
@@ -42,6 +46,13 @@
       <div class="digit-box">:</div>
       <div class="digit-box" id="secTens">0</div>
       <div class="digit-box" id="secUnits">0</div>
+    </div>
+
+    <!-- Totais Gerais -->
+    <div id="totaisGerais">
+      <h3>Total de Hidras (desde sempre): <span id="hidrasSempre">0</span></h3>
+      <h3>Total de Cofres (desde sempre): <span id="cofresSempre">0</span></h3>
+      <h3>Profit Total (desde sempre): <span id="profitSempre">0 W</span></h3>
     </div>
   </div>
 
@@ -101,6 +112,12 @@ function atualizarStats(){
   document.getElementById('totalHidras').innerText = hidras;
   let totalWon=0; historico.forEach(h=>totalWon+=h.profitWon||0);
   document.getElementById('ganhosWon').innerText = `${totalWon.toFixed(2)} W`;
+
+  // Atualiza totais gerais
+  document.getElementById('hidrasSempre').innerText = hidras;
+  document.getElementById('cofresSempre').innerText = cofresTotais;
+  document.getElementById('profitSempre').innerText = `${totalWon.toFixed(2)} W`;
+
   atualizarGrafico();
 }
 
