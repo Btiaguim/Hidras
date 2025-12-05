@@ -15,6 +15,8 @@
   .timer { font-size: 24px; text-align: center; margin-top: 15px; }
   .hidra-icon, .cofre-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
   .banner { width: 100%; border-radius: 12px; margin-bottom: 20px; }
+  #historicoDia p { margin:5px 0; }
+  .novoDia { font-style: italic; color: #bbb; }
 </style>
 </head>
 <body>
@@ -107,7 +109,20 @@ function atualizarDias() {
     option.textContent = dia;
     select.appendChild(option);
   });
-  if(dias.length > 0) mostrarDiaSelecionado();
+
+  // Criar dia novo automaticamente se não existir
+  const hoje = new Date().toLocaleDateString('pt-PT');
+  if (!dias.includes(hoje)) {
+    historico.push({ novoDia: true, data: hoje });
+    localStorage.setItem('historico', JSON.stringify(historico));
+    const option = document.createElement('option');
+    option.value = hoje;
+    option.textContent = hoje;
+    select.appendChild(option);
+  }
+
+  select.value = hoje;
+  mostrarDiaSelecionado();
 }
 
 function mostrarDiaSelecionado() {
@@ -118,13 +133,17 @@ function mostrarDiaSelecionado() {
 
   historico.filter(h => h.data === dia).forEach(item => {
     const p = document.createElement('p');
-    p.innerHTML = `
-      <img src='${hidraImg}' class='hidra-icon' />
-      Hidra-${item.id} - 
-      <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' />
-      Cofres: ${item.cofres} (${item.hora}) – 
-      Profit: ${item.profit}kk (~${item.profitWon}W)
-    `;
+    if(item.novoDia){
+      p.innerHTML = `<span class="novoDia">*(Dia iniciado — ainda sem hidras mortas)*</span>`;
+    } else {
+      p.innerHTML = `
+        <img src='${hidraImg}' class='hidra-icon' />
+        Hidra-${item.id} - 
+        <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' />
+        Cofres: ${item.cofres} (${item.hora}) – 
+        Profit: ${item.profit}kk (~${item.profitWon}W)
+      `;
+    }
     div.appendChild(p);
   });
 }
@@ -137,10 +156,13 @@ function registrarHidra() {
   if (isNaN(precoCofre) || precoCofre < 36 || precoCofre > 40)
     return alert('Insira o preço médio do cofre entre 36 e 40 kk.');
 
+  const hoje = new Date().toLocaleDateString('pt-PT');
   const agora = new Date();
-  const hoje = agora.toLocaleDateString('pt-PT');
   const hora = agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
   const idHidra = hidras + 1;
+
+  // Remover marcador de dia vazio se existir
+  historico = historico.map(h => (h.data === hoje && h.novoDia) ? null : h).filter(Boolean);
 
   let profit = cofres * precoCofre;
   let profitWon = profit / 100;
@@ -190,16 +212,8 @@ function iniciarTimer() {
   },1000);
 }
 
-function pararTimer(){
-  clearInterval(countdown);
-}
-
-function resetarTimer(){
-  clearInterval(countdown);
-  tempoRestante = 0;
-  document.getElementById('timer').innerText = '20:00';
-  localStorage.removeItem('timerFim');
-}
+function pararTimer(){ clearInterval(countdown); }
+function resetarTimer(){ clearInterval(countdown); tempoRestante = 0; document.getElementById('timer').innerText = '20:00'; localStorage.removeItem('timerFim'); }
 
 /* -------------------- ADMIN -------------------- */
 
@@ -238,7 +252,7 @@ function publicarDiscord() {
   const dia = document.getElementById("selecionarDia").value;
   if (!dia) return alert("Nenhum dia encontrado no histórico.");
 
-  const dadosDia = historico.filter(h => h.data === dia);
+  const dadosDia = historico.filter(h => h.data === dia && !h.novoDia);
   if (dadosDia.length === 0) return alert("Esse dia não tem registos.");
 
   let totalCofres = 0;
@@ -274,13 +288,7 @@ function publicarDiscord() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   })
-  .then(res => {
-    if (res.ok) {
-      alert("Publicado com sucesso no Discord!");
-    } else {
-      alert("Erro ao publicar no Discord.");
-    }
-  })
+  .then(res => { if (res.ok) alert("Publicado com sucesso no Discord!"); else alert("Erro ao publicar no Discord."); })
   .catch(() => alert("Erro ao conectar ao Discord Webhook."));
 }
 
