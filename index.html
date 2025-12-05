@@ -4,28 +4,31 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Registo de Hidras - Metin2</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin:0; padding:0; transition: background 0.3s, color 0.3s;}
-.container { display: flex; width: 100%; min-height: 100vh; justify-content: space-around; align-items: flex-start; padding: 20px; box-sizing: border-box; }
-.section { background: #2b2b2b; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.5); width: 30%; transition: background 0.3s; }
-.section h2 { text-align: center; }
-button, input, select { color: #fff; background: #3a3a3a; padding: 10px; margin-top: 10px; border-radius: 8px; border: none; font-size: 16px; width: 100%; box-sizing: border-box; }
-button { background: #4CAF50; cursor: pointer; }
-button:hover { background: #45a049; }
-.timer-digital { display: flex; justify-content: center; margin-top: 15px; font-size: 40px; font-family: monospace; gap: 5px; }
-.timer-digital .digit { display: inline-block; background: #333; padding: 15px 10px; border-radius: 6px; border: 2px solid #fff; min-width: 30px; text-align: center; }
-.hidra-icon, .cofre-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
-.banner { width: 100%; height: 80px; object-fit: cover; border-radius: 12px; margin-bottom: 20px; }
-.dark-mode { background: #121212 !important; color: #eee !important; }
-.dark-mode .section { background: #1f1f1f !important; }
+  body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin:0; padding:0; }
+  .banner { width: 100%; max-height: 150px; object-fit: contain; margin-bottom: 20px; }
+  .container { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: flex-start; padding: 20px; box-sizing: border-box; }
+  .section { background: #2b2b2b; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.5); width: 30%; min-width: 280px; margin-bottom:20px; }
+  .section h2 { text-align: center; margin-bottom:10px; }
+  button, input, select { color: #fff; background: #3a3a3a; padding: 10px; margin-top: 10px; border-radius: 8px; border: none; font-size: 16px; width: 100%; box-sizing: border-box; }
+  button { background: #4CAF50; cursor: pointer; }
+  button:hover { background: #45a049; }
+  .timer { font-size: 40px; text-align: center; margin-top: 15px; letter-spacing: 5px; display:flex; justify-content:center; gap:5px; }
+  .digit-box { background:#3a3a3a; padding:10px 15px; border-radius:5px; }
+  .hidra-icon, .cofre-icon { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
+  #graficoContainer { width:100%; height:200px; margin-top:15px; }
+  @media(max-width: 900px){ .section{width:90%;} }
+  .dark-mode { background:#121212; color:#fff; }
+  .dark-mode .section { background:#1f1f1f; }
+  .dark-mode button,input,select { background:#333; color:#fff; }
 </style>
 </head>
 <body>
-<img src="https://image.board.gameforge.com/uploads/metin2/de/announcement_metin2_de_b9a65d2955858ca2f0b20ab0e2de48d2.jpg" class="banner" />
+
+<img src="https://image.board.gameforge.com/uploads/metin2/de/announcement_metin2_de_b9a65d2955858ca2f0b20ab0e2de48d2.jpg" alt="Banner Hidra Tracker" class="banner" />
 
 <div class="container">
-  <!-- Timer -->
+  <!-- Timer Section -->
   <div class="section" id="timerSection">
     <h2>Timer da Hidra</h2>
     <label>Defina os minutos:</label>
@@ -33,13 +36,16 @@ button:hover { background: #45a049; }
     <button onclick="iniciarTimer()">Iniciar</button>
     <button onclick="pararTimer()">Parar</button>
     <button onclick="resetarTimer()">Resetar</button>
-    <div id="timer" class="timer-digital">
-      <span class="digit">2</span><span class="digit">0</span>:
-      <span class="digit">0</span><span class="digit">0</span>
+    <div id="timer" class="timer">
+      <div class="digit-box" id="minTens">2</div>
+      <div class="digit-box" id="minUnits">0</div>
+      <div class="digit-box">:</div>
+      <div class="digit-box" id="secTens">0</div>
+      <div class="digit-box" id="secUnits">0</div>
     </div>
   </div>
 
-  <!-- Hidras Info -->
+  <!-- Hidra Info Section -->
   <div class="section" id="hidraInfo">
     <h2>Registo de Hidras</h2>
     <label>Total Hidras Mortas:</label>
@@ -55,10 +61,10 @@ button:hover { background: #45a049; }
     <h3>Ganhos: <span id="ganhosWon">0 W</span></h3>
     <label>Selecionar Dia:</label>
     <select id="selecionarDia" onchange="mostrarDiaSelecionado()"></select>
-    <div id="historicoDia" style="max-height:200px; overflow-y:auto;"></div>
+    <div id="historicoDia"></div>
   </div>
 
-  <!-- Admin -->
+  <!-- Admin Section -->
   <div class="section" id="adminSectionContainer">
     <h2>Área Administrativa</h2>
     <label>Seu Nick:</label>
@@ -68,49 +74,55 @@ button:hover { background: #45a049; }
       <button onclick="resetarTudo()" style="background:#c0392b;">Resetar Histórico</button>
       <button onclick="eliminarDia()" style="background:#e67e22;">Eliminar Dia Selecionado</button>
       <button id="publicar">Publicar no Discord</button>
-      <button onclick="toggleDarkMode()">Escuro/Claro</button>
-      <canvas id="graficoCofres" height="150"></canvas>
+      <button onclick="alternarModo()">Escuro/Claro</button>
+      <div id="graficoContainer"><canvas id="graficoHidras"></canvas></div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let hidras = parseInt(localStorage.getItem('hidras')) || 0;
 let cofresTotais = parseInt(localStorage.getItem('cofresTotais')) || 0;
 let historico = JSON.parse(localStorage.getItem('historico')) || [];
-let countdown;
+let countdown; 
 let tempoRestante = 0;
 const webhookURL = "https://discordapp.com/api/webhooks/1446135504868479202/voxMQ-6MyNCg6MvC9Q3Fv-l4Q6jX9qNmQS4edg39_bQFfv_gdr6ha5IjQ9mWSkj4ZkbJ";
-let darkMode = false;
-let chart;
 
-function mostrarAdmin(){document.getElementById('adminSection').style.display = document.getElementById('adminSection').style.display==='none'?'block':'none';}
+function mostrarAdmin(){ 
+  const section=document.getElementById('adminSection'); 
+  section.style.display=section.style.display==='none'?'block':'none'; 
+}
+
 function atualizarStats(){
   document.getElementById('hidras').value = hidras;
   document.getElementById('cofresTotal').innerText = cofresTotais;
   document.getElementById('media').innerText = hidras? (cofresTotais/hidras).toFixed(2):0;
   document.getElementById('totalHidras').innerText = hidras;
-  let totalWon = 0; historico.forEach(h=>totalWon+=h.profitWon||0);
+  let totalWon=0; historico.forEach(h=>totalWon+=h.profitWon||0);
   document.getElementById('ganhosWon').innerText = `${totalWon.toFixed(2)} W`;
   atualizarGrafico();
 }
+
 function atualizarDias(){
   const select=document.getElementById('selecionarDia');
   const dias=[...new Set(historico.map(h=>h.data))];
   select.innerHTML='';
-  dias.forEach(dia=>{const option=document.createElement('option');option.value=dia;option.textContent=dia;select.appendChild(option);});
+  dias.forEach(dia=>{ const option=document.createElement('option'); option.value=dia; option.textContent=dia; select.appendChild(option); });
   if(dias.length>0) mostrarDiaSelecionado();
 }
+
 function mostrarDiaSelecionado(){
   const dia=document.getElementById('selecionarDia').value;
   const div=document.getElementById('historicoDia'); div.innerHTML='';
   const hidraImg='https://en-wiki.metin2.gameforge.com/images/thumb/9/9d/Hydra.png/200px-Hydra.png';
   historico.filter(h=>h.data===dia).forEach(item=>{
     const p=document.createElement('p');
-    p.innerHTML=`<img src='${hidraImg}' class='hidra-icon' />Hidra-${item.id} - <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' /> Cofres: ${item.cofres} (${item.hora}) – Profit: ${item.profit}kk (~${item.profitWon}W)`;
+    p.innerHTML=`<img src='${hidraImg}' class='hidra-icon' /> Hidra-${item.id} - <img src='https://metin2cms.cf/items/img/icons/54705.png' class='cofre-icon' /> Cofres: ${item.cofres} – Profit: ${item.profit}kk (~${item.profitWon}W)`;
     div.appendChild(p);
   });
 }
+
 function registrarHidra(){
   let cofres=parseInt(document.getElementById("cofresInput").value);
   if(isNaN(cofres)||cofres<0||cofres>5)return alert("Insira um valor entre 0 e 5.");
@@ -118,98 +130,83 @@ function registrarHidra(){
   if(isNaN(precoCofre)||precoCofre<36||precoCofre>40)return alert('Insira o preço médio do cofre entre 36 e 40 kk.');
   const agora=new Date();
   const hoje=agora.toLocaleDateString('pt-PT');
-  const hora=agora.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
   const idHidra=hidras+1;
   let profit=cofres*precoCofre;
   let profitWon=profit/100;
-  historico.push({id:idHidra,cofres,data:hoje,hora,profit,profitWon});
-  hidras++;
-  cofresTotais+=cofres;
+  historico.push({id:idHidra, cofres, data:hoje, profit, profitWon});
+  hidras++; cofresTotais+=cofres;
   localStorage.setItem('hidras',hidras);
   localStorage.setItem('cofresTotais',cofresTotais);
   localStorage.setItem('historico',JSON.stringify(historico));
-  atualizarStats();
-  atualizarDias();
-  mostrarDiaSelecionado();
+  atualizarStats(); atualizarDias(); mostrarDiaSelecionado();
   document.getElementById('cofresInput').value='';
 }
 
-/* ---------------- TIMER ------------------ */
+/* -------------------- TIMER -------------------- */
 function iniciarTimer(){
-  let minutos=parseInt(document.getElementById('minutosTimer').value);
-  if(isNaN(minutos)||minutos<=0) minutos=20;
+  let minutos=parseInt(document.getElementById('minutosTimer').value); 
+  if(isNaN(minutos)||minutos<=0)minutos=20;
   let fim=localStorage.getItem('timerFim');
-  if(!fim||tempoRestante<=0){ fim=Date.now()+minutos*60000; localStorage.setItem('timerFim',fim);}
-  fim=parseInt(fim);
-  clearInterval(countdown);
+  if(!fim||tempoRestante<=0){ fim=Date.now()+minutos*60000; localStorage.setItem('timerFim',fim); }
+  fim=parseInt(fim); clearInterval(countdown);
   countdown=setInterval(()=>{
     const restante=Math.max(0,Math.floor((fim-Date.now())/1000));
-    atualizarTimerDisplay(restante);
+    const min=Math.floor(restante/60); const sec=restante%60;
+    document.getElementById('minTens').innerText=Math.floor(min/10);
+    document.getElementById('minUnits').innerText=min%10;
+    document.getElementById('secTens').innerText=Math.floor(sec/10);
+    document.getElementById('secUnits').innerText=sec%10;
     tempoRestante=restante;
-    if(restante<=0){ clearInterval(countdown); localStorage.removeItem('timerFim'); notificarWindows(); }
+    if(restante<=0){ clearInterval(countdown); localStorage.removeItem('timerFim'); notificacaoWindows("O tempo da Hidra acabou!"); }
   },1000);
 }
-function atualizarTimerDisplay(restante){
-  let min=Math.floor(restante/60);
-  let sec=restante%60;
-  const timerEl=document.getElementById('timer');
-  const minStr=String(min).padStart(2,'0');
-  const secStr=String(sec).padStart(2,'0');
-  timerEl.innerHTML=`<span class="digit">${minStr[0]}</span><span class="digit">${minStr[1]}</span>:<span class="digit">${secStr[0]}</span><span class="digit">${secStr[1]}</span>`;
+
+function pararTimer(){ clearInterval(countdown); }
+function resetarTimer(){ clearInterval(countdown); tempoRestante=0; document.getElementById('minTens').innerText='2'; document.getElementById('minUnits').innerText='0'; document.getElementById('secTens').innerText='0'; document.getElementById('secUnits').innerText='0'; localStorage.removeItem('timerFim'); }
+
+function notificacaoWindows(texto){
+  if(Notification.permission!=='granted') Notification.requestPermission().then(perm=>{ if(perm==='granted') new Notification(texto); });
+  else new Notification(texto);
 }
-function pararTimer(){clearInterval(countdown);}
-function resetarTimer(){clearInterval(countdown); tempoRestante=0; atualizarTimerDisplay(1200); localStorage.removeItem('timerFim');}
 
-/* -------------- ADMIN ---------------- */
-function resetarTudo(){ if(confirm('Tem certeza que deseja resetar tudo?')){ localStorage.clear(); hidras=0; cofresTotais=0; historico=[]; atualizarStats(); atualizarDias(); }}
-function eliminarDia(){ const dia=document.getElementById('selecionarDia').value; if(!dia) return alert('Selecione um dia para eliminar'); if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){ historico=historico.filter(h=>h.data!==dia); localStorage.setItem('historico',JSON.stringify(historico)); atualizarDias(); }}
+/* -------------------- ADMIN -------------------- */
+function resetarTudo(){ if(confirm('Tem certeza que deseja resetar tudo?')){ localStorage.clear(); hidras=0; cofresTotais=0; historico=[]; atualizarStats(); atualizarDias(); } }
+function eliminarDia(){ const dia=document.getElementById('selecionarDia').value; if(!dia)return alert('Selecione um dia'); if(confirm(`Deseja eliminar todos os registros do dia ${dia}?`)){ historico=historico.filter(h=>h.data!==dia); localStorage.setItem('historico',JSON.stringify(historico)); atualizarDias(); } }
 
-/* ---------------- PUBLICAR DISCORD --------------- */
-document.getElementById("publicar").addEventListener("click",publicarDiscord);
+/* -------------------- DISCORD -------------------- */
+document.getElementById("publicar").addEventListener("click", publicarDiscord);
 function publicarDiscord(){
-  const nick=document.getElementById("nick").value.trim();
-  if(!nick)return alert("Digite o seu nick antes de publicar.");
-  const dia=document.getElementById("selecionarDia").value;
-  if(!dia)return alert("Nenhum dia encontrado no histórico.");
-  const dadosDia=historico.filter(h=>h.data===dia);
-  if(dadosDia.length===0)return alert("Esse dia não tem registos.");
-  let totalCofres=0,totalWon=0,textoHidras="";
-  dadosDia.forEach(h=>{ totalCofres+=h.cofres; totalWon+=h.profitWon; textoHidras+=`• **Hidra-${h.id}** → ${h.cofres} cofres (${h.hora})\n`; });
-  const payload={content:`📢 **Novo registo de Hidras publicado por ${nick}!**`,embeds:[{title:`📅 Registo do dia ${dia}`,color:3066993,fields:[{name:"👤 Jogador",value:nick,inline:true},{name:"🧟 Hidras Mortas",value:`${dadosDia.length}`,inline:true},{name:"📦 Cofres Totais",value:`${totalCofres} cofres`,inline:true},{name:"💰 Ganho Total",value:`${totalWon.toFixed(2)} W`,inline:true},{name:"📜 Detalhes",value:textoHidras}],footer:{text:"Sistema Automático — Hidra Tracker"}}]};
-  fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(res=>{ if(res.ok) alert("Publicado com sucesso no Discord!"); else alert("Erro ao publicar no Discord."); }).catch(()=>alert("Erro ao conectar ao Discord Webhook."));
+  const nick=document.getElementById("nick").value.trim(); if(!nick)return alert("Digite seu nick");
+  const dia=document.getElementById("selecionarDia").value; if(!dia)return alert("Selecione um dia");
+  const dadosDia=historico.filter(h=>h.data===dia); if(dadosDia.length===0)return alert("Esse dia não tem registos");
+  let totalCofres=0; let totalWon=0; let textoHidras="";
+  dadosDia.forEach(h=>{ totalCofres+=h.cofres; totalWon+=h.profitWon; textoHidras+=`• Hidra-${h.id} → ${h.cofres} cofres\n`; });
+  const payload={content:`📢 Novo registo de Hidras publicado por ${nick}!`, embeds:[{title:`Registo do dia ${dia}`, color:3066993, fields:[{name:"Jogador", value:nick, inline:true},{name:"Hidras Mortas", value:`${dadosDia.length}`, inline:true},{name:"Cofres Totais", value:`${totalCofres}`, inline:true},{name:"Ganho Total", value:`${totalWon.toFixed(2)} W`, inline:true},{name:"Detalhes", value:textoHidras}],footer:{text:"Sistema Automático — Hidra Tracker"}}]};
+  fetch(webhookURL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(res=>{if(res.ok)alert("Publicado com sucesso!"); else alert("Erro ao publicar")}).catch(()=>alert("Erro ao conectar ao Discord"));
 }
 
-/* ------------- DARK MODE ------------------ */
-function toggleDarkMode(){
-  darkMode=!darkMode;
-  document.body.classList.toggle("dark-mode",darkMode);
-}
+/* -------------------- MODO ESCURO -------------------- */
+function alternarModo(){ document.body.classList.toggle("dark-mode"); }
 
-/* ------------- CHART ---------------------- */
+/* -------------------- GRÁFICO -------------------- */
+let ctx=document.getElementById('graficoHidras').getContext('2d');
+let grafico=new Chart(ctx,{type:'bar',data:{labels:[],datasets:[{label:'Hidras Mortas',data:[],backgroundColor:'rgba(75,192,192,0.5)',borderColor:'rgba(75,192,192,1)',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
 function atualizarGrafico(){
-  const ctx=document.getElementById('graficoCofres').getContext('2d');
   const dias=[...new Set(historico.map(h=>h.data))];
-  const totalCofresDia=dias.map(d=>historico.filter(h=>h.data===d).reduce((a,b)=>a+b.cofres,0));
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{type:'bar',data:{labels:dias,datasets:[{label:'Cofres por Dia',data:totalCofresDia,backgroundColor:'rgba(75, 192, 192, 0.7)'}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+  grafico.data.labels=dias;
+  grafico.data.datasets[0].data=dias.map(d=>historico.filter(h=>h.data===d).length);
+  grafico.update();
 }
 
-/* ------------- WINDOWS NOTIF ---------------- */
-function notificarWindows(){
-  if("Notification" in window){
-    if(Notification.permission==="granted"){
-      new Notification("Hidra Tracker",{body:"O tempo da Hidra acabou!"});
-    }else if(Notification.permission!=="denied"){ Notification.requestPermission();}
-  }
-}
-
+/* -------------------- ON LOAD -------------------- */
 window.onload=()=>{
   const fim=localStorage.getItem('timerFim');
-  if(fim){ tempoRestante=Math.max(0,Math.floor((fim-Date.now())/1000)); if(tempoRestante>0) iniciarTimer();}
+  if(fim){ tempoRestante=Math.max(0,Math.floor((fim-Date.now())/1000)); if(tempoRestante>0)iniciarTimer(); }
   atualizarStats();
   atualizarDias();
   mostrarDiaSelecionado();
 };
 </script>
+
 </body>
 </html>
